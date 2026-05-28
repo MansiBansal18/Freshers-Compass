@@ -7,16 +7,31 @@ def get_ai_response(prompt):
     try:
         if "GOOGLE_API_KEY" not in st.secrets:
             return "❌ API Key missing in Settings."
+        
         api_key = st.secrets["GOOGLE_API_KEY"]
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={api_key}"
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
-        response = requests.post(url, json=payload, timeout=15)
+        
+        # Increased timeout to 30 seconds
+        response = requests.post(url, json=payload, timeout=30)
+        
+        # This will now print the error code in your logs if it fails!
         if response.status_code != 200:
-            return "The Compass is recalibrating... please try again in a moment."
+            print(f"DEBUG: API Error! Status: {response.status_code}, Response: {response.text}")
+            return f"The Compass is stuck (Error {response.status_code}). Try again in a minute."
+
         data = response.json()
-        return data['candidates'][0]['content']['parts'][0]['text']
-    except Exception:
-        return "The Compass is spinning! Check your connection."
+        
+        # Check if Google actually sent a reply back
+        if 'candidates' in data and data['candidates']:
+            return data['candidates'][0]['content']['parts'][0]['text']
+        else:
+            print(f"DEBUG: Google sent an empty response: {data}")
+            return "The AI stayed silent. Try a different skill name."
+
+    except Exception as e:
+        print(f"DEBUG: Python Error: {e}")
+        return "The Compass is spinning! Check the logs in 'Manage App'."
 
 # --- 2. THE PREMIUM CSS (Animations & Layout) ---
 st.set_page_config(page_title="Fresher's Compass", page_icon="🧭", layout="centered")
