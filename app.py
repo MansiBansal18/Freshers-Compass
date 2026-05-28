@@ -11,7 +11,7 @@ def get_ai_response(prompt):
         api_key = st.secrets["GOOGLE_API_KEY"]
         
         # Direct Endpoint for Gemini 3 Flash
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={api_key}"
         
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
