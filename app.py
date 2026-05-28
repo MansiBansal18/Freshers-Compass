@@ -16,10 +16,17 @@ def get_ai_response(prompt):
         response = requests.post(url, json=payload, timeout=30)
         
         # This will now print the error code in your logs if it fails!
+       # ... (previous code where you send the request)
+        response = requests.post(url, json=payload, timeout=30)
+        
+        # ADD THIS SECTION RIGHT HERE:
+        if response.status_code == 429:
+            return "🚦 Google is a bit busy! Please wait 60 seconds and try again."
+        
+        # Then the rest of your error handling follows...
         if response.status_code != 200:
             print(f"DEBUG: API Error! Status: {response.status_code}, Response: {response.text}")
-            return f"The Compass is stuck (Error {response.status_code}). Try again in a minute."
-
+            return f"The Compass is stuck (Error {response.status_code})."
         data = response.json()
         
         # Check if Google actually sent a reply back
