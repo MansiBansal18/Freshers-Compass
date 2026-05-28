@@ -1,28 +1,33 @@
 import streamlit as st
 import requests
 
-# --- 1. THE BRAIN (Confirmed Gemini 3 Flash) ---
+# --- 1. THE BRAIN (With Error Diagnostics) ---
 def get_ai_response(prompt):
     try:
+        # Check if the secret exists in Streamlit Cloud
+        if "GOOGLE_API_KEY" not in st.secrets:
+            return "❌ Error: 'GOOGLE_API_KEY' not found in Streamlit Secrets settings."
+            
         api_key = st.secrets["GOOGLE_API_KEY"]
-    except:
-        st.error("Secret Key missing in .streamlit/secrets.toml")
-        return None
-
-    # DIRECT PATH TO GEMINI 3 FLASH
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={api_key}"
-    
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.7, "maxOutputTokens": 1000}
-    }
-    
-    try:
+        
+        # Direct Endpoint for Gemini 3 Flash
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={api_key}"
+        
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.7, "maxOutputTokens": 1000}
+        }
+        
         response = requests.post(url, json=payload, timeout=15)
+        
+        # Check if Google accepted the request
+        if response.status_code != 200:
+            return f"❌ Google API Error {response.status_code}: {response.text}"
+            
         data = response.json()
         return data['candidates'][0]['content']['parts'][0]['text']
-    except Exception:
-        return "The Compass is spinning! Make sure your API key is valid for Gemini 3."
+    except Exception as e:
+        return f"⚠️ Connection Error: {str(e)}"
 
 # --- 2. THE PREMIUM LOOK ---
 st.set_page_config(page_title="Fresher's Compass", page_icon="🧭", layout="wide")
@@ -55,7 +60,7 @@ if not st.session_state.domain:
         if st.button("Generate My Path"):
             if user_input:
                 st.session_state.domain = user_input
-                st.balloons() # CELEBRATION!
+                st.balloons()
                 st.rerun()
 else:
     # DASHBOARD PAGE
@@ -73,22 +78,18 @@ else:
     with col1:
         st.subheader("🚀 Pro Roadmap (Verified)")
         if st.button(f"Get {domain_name} Links"):
-            st.snow() # Subtle cool effect for roadmap
+            st.snow()
             with st.spinner("Finding Coursera & YouTube experts..."):
                 prompt = f"""Act as a career mentor. Provide a 4-step roadmap for {domain_name}.
                 For each step:
-                1. Give it a 'Level Up' name.
-                2. Suggest ONLY ONE verified course link from Coursera, Udemy, or a high-authority YouTube channel.
-                3. Use bullet points, no long paragraphs."""
+                1. Level Up name.
+                2. ONE verified course link (Coursera/Udemy/YouTube).
+                3. Bullet points."""
                 st.markdown(get_ai_response(prompt))
 
     with col2:
         st.subheader("💡 Build Challenge")
         if st.button("Generate Project"):
             with st.spinner("Creating your portfolio piece..."):
-                prompt = f"""Suggest ONE real-world project for a student starting {domain_name}.
-                Structure:
-                - **Concept**: The big idea.
-                - **Tech Stack**: List 3 specific tools.
-                - **The Build**: 3 step-by-step phases to finish it."""
+                prompt = f"Suggest ONE real-world project for a student starting {domain_name}. Concept, Tech Stack, and 3-step Build process."
                 st.info(get_ai_response(prompt))
