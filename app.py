@@ -1,95 +1,132 @@
 import streamlit as st
 import requests
+import random
 
-# --- 1. THE BRAIN (With Error Diagnostics) ---
+# --- 1. THE BRAIN ---
 def get_ai_response(prompt):
     try:
-        # Check if the secret exists in Streamlit Cloud
         if "GOOGLE_API_KEY" not in st.secrets:
-            return "❌ Error: 'GOOGLE_API_KEY' not found in Streamlit Secrets settings."
-            
+            return "❌ API Key missing in Settings."
         api_key = st.secrets["GOOGLE_API_KEY"]
-        
-        # Direct Endpoint for Gemini 3 Flash
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={api_key}"
-        
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.7, "maxOutputTokens": 1000}
-        }
-        
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
         response = requests.post(url, json=payload, timeout=15)
-        
-        # Check if Google accepted the request
         if response.status_code != 200:
-            return f"❌ Google API Error {response.status_code}: {response.text}"
-            
+            return "The Compass is recalibrating... please try again in a moment."
         data = response.json()
         return data['candidates'][0]['content']['parts'][0]['text']
-    except Exception as e:
-        return f"⚠️ Connection Error: {str(e)}"
+    except Exception:
+        return "The Compass is spinning! Check your connection."
 
-# --- 2. THE PREMIUM LOOK ---
-st.set_page_config(page_title="Fresher's Compass", page_icon="🧭", layout="wide")
+# --- 2. CONFIG & PREMIUM DESIGN ---
+st.set_page_config(page_title="Fresher's Compass", page_icon="🧭", layout="centered")
 
+# Custom CSS for Animations, Layout, and the Lavender Theme
 st.markdown("""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+    
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     .stApp { background-color: #0E1117; color: #E0E0E0; }
-    .main-title { color: #E0B0FF; text-align: center; font-size: 3.5rem; font-weight: 800; text-shadow: 0px 0px 10px #E0B0FF; }
-    .quote { text-align: center; font-style: italic; color: #A0A0A0; font-size: 1.2rem; }
+    
+    /* Title Animation */
+    .main-title { 
+        color: #E0B0FF; text-align: center; font-size: 3.5rem; font-weight: 800; 
+        text-shadow: 0px 0px 15px rgba(224, 176, 255, 0.5);
+        animation: fadeIn 2s;
+    }
+    
+    /* Relatable Quote Style */
+    .relatable-quote {
+        text-align: center; color: #A0A0A0; font-size: 1.1rem; 
+        margin-bottom: 2rem; font-style: italic;
+    }
+
+    /* Decorative Card for AI Content */
+    .content-card {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 20px; border-radius: 15px;
+        border: 1px solid rgba(224, 176, 255, 0.2);
+        margin-bottom: 20px;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    
     .stButton>button {
         background: linear-gradient(90deg, #D8BFD8, #E0B0FF);
-        color: black; border-radius: 15px; font-weight: bold; border: none; height: 3.5rem; width: 100%;
+        color: black; border-radius: 12px; font-weight: bold; border: none;
+        transition: 0.3s; width: 100%; height: 3rem;
     }
-    .stButton>button:hover { transform: translateY(-3px); box-shadow: 0px 5px 15px #E0B0FF; }
+    .stButton>button:hover { transform: scale(1.02); box-shadow: 0px 0px 20px #E0B0FF; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. THE LOGIC ---
+# Relatable motivational quotes for freshers
+QUOTES = [
+    "“The expert in anything was once a beginner.”",
+    "“Don't watch the clock; do what it does. Keep going.”",
+    "“Your direction is more important than your speed.”",
+    "“Confusion is the first step towards mastery.”"
+]
+
+TIPS = [
+    "Tip: Consistency beats intensity. 30 mins a day > 5 hours once a week.",
+    "Tip: Don't just follow tutorials. Build something that breaks!",
+    "Tip: Your LinkedIn is your digital handshake. Keep it clean.",
+    "Tip: The best way to learn is to explain it to someone else."
+]
+
+# --- 3. APP LOGIC ---
 if 'domain' not in st.session_state:
     st.session_state.domain = ""
 
+# Sidebar Feature: Daily Career Tip (The "New Feature")
+with st.sidebar:
+    st.markdown("### 💡 Daily Compass Tip")
+    st.info(random.choice(TIPS))
+    st.write("---")
+    st.caption("Crafted for the next generation of builders.")
+
 if not st.session_state.domain:
-    # LANDING PAGE
+    # --- PAGE 1: LANDING ---
     st.markdown("<h1 class='main-title'>🧭 Fresher's Compass</h1>", unsafe_allow_html=True)
-    st.markdown("<p class='quote'>\"Your first step into the future starts here.\"</p>", unsafe_allow_html=True)
+    st.markdown(f"<p class='relatable-quote'>{random.choice(QUOTES)}</p>", unsafe_allow_html=True)
     
-    _, mid, _ = st.columns([1, 2, 1])
-    with mid:
-        user_input = st.text_input("", placeholder="What skill do you want to conquer?")
-        if st.button("Generate My Path"):
-            if user_input:
-                st.session_state.domain = user_input
-                st.balloons()
-                st.rerun()
+    user_input = st.text_input("", placeholder="Enter a skill (e.g. Java, Design, Marketing)...")
+    
+    if st.button("Generate My Path"):
+        if user_input:
+            st.session_state.domain = user_input
+            st.balloons()
+            st.rerun()
 else:
-    # DASHBOARD PAGE
-    domain_name = st.session_state.domain.title()
-    st.markdown(f"<h1 class='main-title'>Decoding {domain_name}</h1>", unsafe_allow_html=True)
+    # --- PAGE 2: DASHBOARD ---
+    domain_name = st.session_state.domain.upper()
     
-    if st.button("⬅ Search Another Skill"):
+    # Header with Motivational Quote right around the 'Decoding' text
+    st.markdown(f"<h1 class='main-title'>DECODING {domain_name}</h1>", unsafe_allow_html=True)
+    st.markdown(f"<p class='relatable-quote'>{random.choice(QUOTES)}</p>", unsafe_allow_html=True)
+
+    if st.button("⬅ Change Skill"):
         st.session_state.domain = ""
         st.rerun()
 
     st.write("---")
+
+    # Layout: Sequential view (cleaner than columns for reading roadmaps)
     
-    col1, col2 = st.columns(2)
+    # SECTION 1: ROADMAP
+    st.markdown("### 🚀 The Roadmap")
+    with st.spinner(f"Mapping out {domain_name}..."):
+        prompt = f"Provide a clear 4-step roadmap for {domain_name}. Include one resource link per step."
+        roadmap = get_ai_response(prompt)
+        st.markdown(f"<div class='content-card'>{roadmap}</div>", unsafe_allow_html=True)
 
-    with col1:
-        st.subheader("🚀 Pro Roadmap (Verified)")
-        if st.button(f"Get {domain_name} Links"):
-            st.snow()
-            with st.spinner("Finding Coursera & YouTube experts..."):
-                prompt = f"""Act as a career mentor. Provide a 4-step roadmap for {domain_name}.
-                For each step:
-                1. Level Up name.
-                2. ONE verified course link (Coursera/Udemy/YouTube).
-                3. Bullet points."""
-                st.markdown(get_ai_response(prompt))
+    # SECTION 2: PROJECT
+    st.markdown("### 💡 Your First Project")
+    with st.spinner("Brainstorming projects..."):
+        prompt = f"Suggest ONE beginner project for {domain_name}. Concept, Tech Stack, and 3-step Build process."
+        project = get_ai_response(prompt)
+        st.markdown(f"<div class='content-card'>{project}</div>", unsafe_allow_html=True)
 
-    with col2:
-        st.subheader("💡 Build Challenge")
-        if st.button("Generate Project"):
-            with st.spinner("Creating your portfolio piece..."):
-                prompt = f"Suggest ONE real-world project for a student starting {domain_name}. Concept, Tech Stack, and 3-step Build process."
-                st.info(get_ai_response(prompt))
+    st.success("Success! Focus on one step at a time.")
