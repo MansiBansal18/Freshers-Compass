@@ -18,115 +18,104 @@ def get_ai_response(prompt):
     except Exception:
         return "The Compass is spinning! Check your connection."
 
-# --- 2. CONFIG & PREMIUM DESIGN ---
+# --- 2. THE PREMIUM CSS (Animations & Layout) ---
 st.set_page_config(page_title="Fresher's Compass", page_icon="🧭", layout="centered")
 
-# Custom CSS for Animations, Layout, and the Lavender Theme
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
-    
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     .stApp { background-color: #0E1117; color: #E0E0E0; }
     
     /* Title Animation */
+    @keyframes fadeInSlide {
+        0% { opacity: 0; transform: translateY(20px); filter: blur(5px); }
+        100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+    }
     .main-title { 
         color: #E0B0FF; text-align: center; font-size: 3.5rem; font-weight: 800; 
         text-shadow: 0px 0px 15px rgba(224, 176, 255, 0.5);
-        animation: fadeIn 2s;
+        animation: fadeInSlide 1.2s ease-out forwards;
     }
-    
-    /* Relatable Quote Style */
     .relatable-quote {
         text-align: center; color: #A0A0A0; font-size: 1.1rem; 
         margin-bottom: 2rem; font-style: italic;
+        animation: fadeInSlide 1.8s ease-out forwards;
+        animation-delay: 0.3s; opacity: 0;
     }
-
-    /* Decorative Card for AI Content */
     .content-card {
-        background: rgba(255, 255, 255, 0.05);
-        padding: 20px; border-radius: 15px;
-        border: 1px solid rgba(224, 176, 255, 0.2);
-        margin-bottom: 20px;
+        background: rgba(255, 255, 255, 0.05); padding: 22px; border-radius: 18px;
+        border: 1px solid rgba(224, 176, 255, 0.15); margin-bottom: 20px;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        animation: fadeInSlide 1s ease-in-out;
     }
-
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    
     .stButton>button {
         background: linear-gradient(90deg, #D8BFD8, #E0B0FF);
         color: black; border-radius: 12px; font-weight: bold; border: none;
-        transition: 0.3s; width: 100%; height: 3rem;
+        transition: 0.3s; width: 100%; height: 3.5rem;
     }
     .stButton>button:hover { transform: scale(1.02); box-shadow: 0px 0px 20px #E0B0FF; }
     </style>
     """, unsafe_allow_html=True)
 
-# Relatable motivational quotes for freshers
 QUOTES = [
     "“The expert in anything was once a beginner.”",
-    "“Don't watch the clock; do what it does. Keep going.”",
     "“Your direction is more important than your speed.”",
-    "“Confusion is the first step towards mastery.”"
+    "“Confusion is the first step towards mastery.”",
+    "“The best time to start was yesterday. The second best time is now.”"
 ]
 
 TIPS = [
     "Tip: Consistency beats intensity. 30 mins a day > 5 hours once a week.",
     "Tip: Don't just follow tutorials. Build something that breaks!",
-    "Tip: Your LinkedIn is your digital handshake. Keep it clean.",
+    "Tip: Your LinkedIn is your digital handshake. Keep it professional.",
     "Tip: The best way to learn is to explain it to someone else."
 ]
 
-# --- 3. APP LOGIC ---
+# --- 3. THE LOGIC ---
 if 'domain' not in st.session_state:
     st.session_state.domain = ""
 
-# Sidebar Feature: Daily Career Tip (The "New Feature")
 with st.sidebar:
     st.markdown("### 💡 Daily Compass Tip")
     st.info(random.choice(TIPS))
     st.write("---")
-    st.caption("Crafted for the next generation of builders.")
+    st.caption("Mansi's Fresher's Compass v2.0")
 
 if not st.session_state.domain:
     # --- PAGE 1: LANDING ---
     st.markdown("<h1 class='main-title'>🧭 Fresher's Compass</h1>", unsafe_allow_html=True)
     st.markdown(f"<p class='relatable-quote'>{random.choice(QUOTES)}</p>", unsafe_allow_html=True)
     
-    user_input = st.text_input("", placeholder="Enter a skill (e.g. Java, Design, Marketing)...")
-    
-    if st.button("Generate My Path"):
+    user_input = st.text_input("", placeholder="Which skill do you want to master today?")
+    if st.button("Unlock My Roadmap"):
         if user_input:
             st.session_state.domain = user_input
-            st.balloons()
+            st.balloons() # 🎈 Trigger Balloons on search
             st.rerun()
 else:
     # --- PAGE 2: DASHBOARD ---
     domain_name = st.session_state.domain.upper()
-    
-    # Header with Motivational Quote right around the 'Decoding' text
     st.markdown(f"<h1 class='main-title'>DECODING {domain_name}</h1>", unsafe_allow_html=True)
     st.markdown(f"<p class='relatable-quote'>{random.choice(QUOTES)}</p>", unsafe_allow_html=True)
 
-    if st.button("⬅ Change Skill"):
+    if st.button("⬅ Search New Skill"):
         st.session_state.domain = ""
         st.rerun()
 
     st.write("---")
 
-    # Layout: Sequential view (cleaner than columns for reading roadmaps)
-    
-    # SECTION 1: ROADMAP
-    st.markdown("### 🚀 The Roadmap")
-    with st.spinner(f"Mapping out {domain_name}..."):
-        prompt = f"Provide a clear 4-step roadmap for {domain_name}. Include one resource link per step."
+    # ROADMAP SECTION
+    st.markdown("### 🚀 Step-by-Step Path")
+    with st.spinner(f"Architecting {domain_name} roadmap..."):
+        prompt = f"Provide a clear 4-step roadmap for learning {domain_name}. For each step, suggest ONE famous free resource link (like YouTube or Coursera)."
         roadmap = get_ai_response(prompt)
         st.markdown(f"<div class='content-card'>{roadmap}</div>", unsafe_allow_html=True)
+        st.snow() # ❄️ Trigger Snow when the roadmap is ready
 
-    # SECTION 2: PROJECT
-    st.markdown("### 💡 Your First Project")
-    with st.spinner("Brainstorming projects..."):
-        prompt = f"Suggest ONE beginner project for {domain_name}. Concept, Tech Stack, and 3-step Build process."
+    # PROJECT SECTION
+    st.markdown("### 💡 Build Challenge")
+    with st.spinner("Generating project ideas..."):
+        prompt = f"Suggest ONE starter project for {domain_name}. Concept, Tech Stack, and 3-step Build process."
         project = get_ai_response(prompt)
         st.markdown(f"<div class='content-card'>{project}</div>", unsafe_allow_html=True)
-
-    st.success("Success! Focus on one step at a time.")
