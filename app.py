@@ -1,35 +1,39 @@
 import streamlit as st
 import requests
 import random
+import time
 
-# --- 1. THE BRAIN (Fixed 404 & Stability) ---
+# --- 1. THE BRAIN (With Automatic Retries) ---
 def get_ai_response(prompt):
-    try:
-        if "GOOGLE_API_KEY" not in st.secrets:
-            return "❌ API Key missing in Settings."
-        
-        api_key = st.secrets["GOOGLE_API_KEY"]
-        # FIXED URL: Using v1beta and the specific model path to avoid 404
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-        
-        payload = {"contents": [{"parts": [{"text": prompt}]}]}
-        response = requests.post(url, json=payload, timeout=30)
-        
-        if response.status_code == 404:
-            return "🧭 Error 404: The Compass lost its map! Please check the API Model name."
-        if response.status_code == 429:
-            return "🚦 Too many hikers on the trail! Wait 60 seconds and try again."
-        if response.status_code != 200:
-            return f"⚠️ Compass Glitch (Error {response.status_code}). Try again!"
+    if "GOOGLE_API_KEY" not in st.secrets:
+        return "❌ API Key missing in Settings."
+    
+    api_key = st.secrets["GOOGLE_API_KEY"]
+    # 2026 STABLE ENDPOINT: Optimized for Gemini 3.5 Flash
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={api_key}"
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    
+    # Try 3 times if the API is busy (Error 429)
+    for attempt in range(3):
+        try:
+            response = requests.post(url, json=payload, timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                return data['candidates'][0]['content']['parts'][0]['text']
+            
+            if response.status_code == 429:
+                time.sleep(2) # Wait 2 seconds and try again
+                continue
+            
+            return f"⚠️ Compass Glitch (Error {response.status_code})"
+        except Exception:
+            time.sleep(2)
+            continue
+            
+    return "🚦 The trail is too crowded right now. Please refresh in 30 seconds."
 
-        data = response.json()
-        if 'candidates' in data and data['candidates']:
-            return data['candidates'][0]['content']['parts'][0]['text']
-        return "The AI stayed silent. Try a different skill!"
-    except Exception:
-        return "The Compass is spinning! Check your internet."
-
-# --- 2. THE DESIGN (With Highlights) ---
+# --- 2. THE RESTORED PREMIUM LAYOUT ---
 st.set_page_config(page_title="Fresher's Compass", page_icon="🧭", layout="centered")
 
 st.markdown("""
@@ -39,18 +43,12 @@ st.markdown("""
     .stApp { background-color: #0E1117; color: #E0E0E0; }
     
     .main-title { 
-        color: #E0B0FF; text-align: center; font-size: 3.2rem; font-weight: 800; 
+        color: #E0B0FF; text-align: center; font-size: 3.5rem; font-weight: 800; 
         text-shadow: 0px 0px 15px rgba(224, 176, 255, 0.4);
-        margin-bottom: 10px;
-    }
-    .section-header {
-        color: #E0B0FF; font-size: 1.8rem; font-weight: 700;
-        margin-top: 30px; border-left: 5px solid #E0B0FF; padding-left: 15px;
     }
     .content-card {
-        background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 15px;
-        border: 1px solid rgba(224, 176, 255, 0.2); margin-top: 10px;
-        line-height: 1.6;
+        background: rgba(255, 255, 255, 0.05); padding: 22px; border-radius: 18px;
+        border: 1px solid rgba(224, 176, 255, 0.15); margin-bottom: 20px;
     }
     .stButton>button {
         background: linear-gradient(90deg, #D8BFD8, #E0B0FF);
@@ -59,38 +57,42 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. THE APP FLOW ---
+# SIDEBAR RESTORED
+with st.sidebar:
+    st.markdown("### 💡 Daily Compass Tip")
+    st.info("Tip: Consistency beats intensity. 30 mins a day > 5 hours once a week.")
+    st.write("---")
+    st.caption("Mansi's Fresher's Compass v2.5")
+
 if 'domain' not in st.session_state:
     st.session_state.domain = ""
 
 if not st.session_state.domain:
     st.markdown("<h1 class='main-title'>🧭 Fresher's Compass</h1>", unsafe_allow_html=True)
-    st.write("<p style='text-align:center;'>Your AI-powered map to career success.</p>", unsafe_allow_html=True)
+    st.write("<p style='text-align:center;'>Master any skill with a personalized AI roadmap.</p>", unsafe_allow_html=True)
     
-    user_input = st.text_input("", placeholder="Enter a skill (e.g. Data Science, UI Design)")
-    if st.button("Generate My Roadmap"):
+    user_input = st.text_input("", placeholder="What do you want to learn? (e.g., Python, Figma)")
+    if st.button("Unlock My Roadmap"):
         if user_input:
             st.session_state.domain = user_input
             st.balloons()
             st.rerun()
 else:
-    # SEARCH PAGE
+    # --- PAGE 2: THE DASHBOARD (Restored Highlights) ---
     st.markdown(f"<h1 class='main-title'>{st.session_state.domain.upper()}</h1>", unsafe_allow_html=True)
-    if st.button("⬅ Search Different Skill"):
+    if st.button("⬅ Search New Skill"):
         st.session_state.domain = ""
         st.rerun()
 
-    with st.spinner("Consulting the experts..."):
-        # This prompt tells the AI exactly how to format the "Highlights"
-        prompt = (
-            f"Act as a mentor for {st.session_state.domain}. "
-            f"Provide a structured 4-step roadmap with links and ONE starter project. "
-            f"Use Markdown bolding for keywords and sections."
-        )
-        result = get_ai_response(prompt)
-        
-        # We split the answer so it's not a big wall of text
-        st.markdown("<div class='section-header'>🚀 Your Roadmap</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='content-card'>{result}</div>", unsafe_allow_html=True)
-        
+    # ROADMAP SECTION
+    st.markdown("### 🚀 Step-by-Step Roadmap")
+    with st.spinner("Mapping the route..."):
+        roadmap = get_ai_response(f"Provide a clear 4-step roadmap for learning {st.session_state.domain} with links.")
+        st.markdown(f"<div class='content-card'>{roadmap}</div>", unsafe_allow_html=True)
+
+    # PROJECT SECTION
+    st.markdown("### 🛠️ Hands-on Project")
+    with st.spinner("Designing a build challenge..."):
+        project = get_ai_response(f"Suggest ONE starter project for {st.session_state.domain} with a tech stack.")
+        st.markdown(f"<div class='content-card'>{project}</div>", unsafe_allow_html=True)
         st.snow()
