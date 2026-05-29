@@ -2,43 +2,32 @@ import streamlit as st
 import requests
 import random
 
-# --- 1. THE BRAIN ---
+# --- 1. THE BRAIN (Optimized for 1.5 Flash & Single Call) ---
 def get_ai_response(prompt):
     try:
         if "GOOGLE_API_KEY" not in st.secrets:
             return "❌ API Key missing in Settings."
         
         api_key = st.secrets["GOOGLE_API_KEY"]
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={api_key}"
+        # Using Gemini 1.5 Flash for maximum stability
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
         
-        # Increased timeout to 30 seconds
         response = requests.post(url, json=payload, timeout=30)
         
-        # This will now print the error code in your logs if it fails!
-       # ... (previous code where you send the request)
-        response = requests.post(url, json=payload, timeout=30)
-        
-        # ADD THIS SECTION RIGHT HERE:
         if response.status_code == 429:
-            return "🚦 Google is a bit busy! Please wait 60 seconds and try again."
+            return "🚦 The system is a bit crowded! Please wait 60 seconds and try again."
         
-        # Then the rest of your error handling follows...
         if response.status_code != 200:
-            print(f"DEBUG: API Error! Status: {response.status_code}, Response: {response.text}")
-            return f"The Compass is stuck (Error {response.status_code})."
+            return f"The Compass is recalibrating (Error {response.status_code}). Please try again."
+
         data = response.json()
-        
-        # Check if Google actually sent a reply back
         if 'candidates' in data and data['candidates']:
             return data['candidates'][0]['content']['parts'][0]['text']
         else:
-            print(f"DEBUG: Google sent an empty response: {data}")
-            return "The AI stayed silent. Try a different skill name."
-
+            return "The AI stayed silent. Try a different skill name!"
     except Exception as e:
-        print(f"DEBUG: Python Error: {e}")
-        return "The Compass is spinning! Check the logs in 'Manage App'."
+        return "The Compass is spinning! Check your internet connection."
 
 # --- 2. THE PREMIUM CSS (Animations & Layout) ---
 st.set_page_config(page_title="Fresher's Compass", page_icon="🧭", layout="centered")
@@ -49,7 +38,6 @@ st.markdown("""
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     .stApp { background-color: #0E1117; color: #E0E0E0; }
     
-    /* Title Animation */
     @keyframes fadeInSlide {
         0% { opacity: 0; transform: translateY(20px); filter: blur(5px); }
         100% { opacity: 1; transform: translateY(0); filter: blur(0); }
@@ -113,7 +101,7 @@ if not st.session_state.domain:
     if st.button("Unlock My Roadmap"):
         if user_input:
             st.session_state.domain = user_input
-            st.balloons() # 🎈 Trigger Balloons on search
+            st.balloons()
             st.rerun()
 else:
     # --- PAGE 2: DASHBOARD ---
@@ -127,17 +115,16 @@ else:
 
     st.write("---")
 
-    # ROADMAP SECTION
-    st.markdown("### 🚀 Step-by-Step Path")
-    with st.spinner(f"Architecting {domain_name} roadmap..."):
-        prompt = f"Provide a clear 4-step roadmap for learning {domain_name}. For each step, suggest ONE famous free resource link (like YouTube or Coursera)."
-        roadmap = get_ai_response(prompt)
-        st.markdown(f"<div class='content-card'>{roadmap}</div>", unsafe_allow_html=True)
-        st.snow() # ❄️ Trigger Snow when the roadmap is ready
-
-    # PROJECT SECTION
-    st.markdown("### 💡 Build Challenge")
-    with st.spinner("Generating project ideas..."):
-        prompt = f"Suggest ONE starter project for {domain_name}. Concept, Tech Stack, and 3-step Build process."
-        project = get_ai_response(prompt)
-        st.markdown(f"<div class='content-card'>{project}</div>", unsafe_allow_html=True)
+    # SINGLE CALL GENERATION
+    with st.spinner(f"Architecting the path for {domain_name}..."):
+        # We ask for everything in one prompt to save API quota
+        combined_prompt = (
+            f"Act as a career mentor. For the skill '{domain_name}':\n"
+            f"1. Give a clear 4-step roadmap with ONE famous free resource link for each step.\n"
+            f"2. Suggest ONE starter project (Concept, Tech Stack, and 3-step Build process).\n"
+            f"Format with bold headings and bullet points."
+        )
+        final_output = get_ai_response(combined_prompt)
+        
+        st.markdown(f"<div class='content-card'>{final_output}</div>", unsafe_allow_html=True)
+        st.snow() # Snow falls as soon as the full content is ready
